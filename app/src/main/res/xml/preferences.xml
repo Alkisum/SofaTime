@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:key="vlc"
+        android:title="VLC">
+
+        <EditTextPreference
+            android:key="vlcIpAddress"
+            android:title="IP Address"/>
+
+        <EditTextPreference
+            android:key="vlcPort"
+            android:title="Port"/>
+
+        <EditTextPreference
+            android:key="vlcPassword"
+            android:title="Password"
+            android:inputType="textPassword" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="About">
+
+        <Preference
+            android:key="about"
+            android:title="About VLC Remote"/>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
