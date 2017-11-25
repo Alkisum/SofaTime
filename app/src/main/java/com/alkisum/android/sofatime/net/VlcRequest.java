@@ -208,7 +208,6 @@ public class VlcRequest {
     private static void handleStatus(final String xml) throws
             ParserConfigurationException, SAXException, IOException,
             XPathExpressionException {
-        Log.e(TAG, xml);
         Document doc = Xml.buildDocFromString(xml);
 
         // State

@@ -127,18 +127,36 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences sharedPref = PreferenceManager
                 .getDefaultSharedPreferences(this);
-        vlcRequest = new VlcRequest(
-                sharedPref.getString(Pref.VLC_IP_ADDRESS, ""),
-                sharedPref.getString(Pref.VLC_PORT, ""),
-                sharedPref.getString(Pref.VLC_PASSWORD, ""));
-        vlcRequest.start();
+
+        String ipAddress = sharedPref.getString(Pref.VLC_IP_ADDRESS, "");
+        String port = sharedPref.getString(Pref.VLC_PORT, "");
+        String password = sharedPref.getString(Pref.VLC_PASSWORD, "");
+
+        if (ipAddress.equals("") || port.equals("")) {
+            StringBuilder msg = new StringBuilder();
+            msg.append(getString(R.string.error_vlc_settings_message));
+            if (ipAddress.equals("")) {
+                msg.append(getString(R.string.error_vlc_settings_ipaddress));
+            }
+            if (port.equals("")) {
+                msg.append(getString(R.string.error_vlc_settings_port));
+            }
+            ErrorDialog.show(this, getString(R.string.error_vlc_settings_title),
+                    msg.toString());
+        } else {
+            // start HTTP request
+            vlcRequest = new VlcRequest(ipAddress, port, password);
+            vlcRequest.start();
+        }
     }
 
     @Override
     protected final void onStop() {
         super.onStop();
 
-        vlcRequest.stop();
+        if (vlcRequest != null) {
+            vlcRequest.stop();
+        }
 
         EventBus.getDefault().unregister(this);
     }

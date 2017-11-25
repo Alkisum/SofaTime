@@ -11,6 +11,11 @@
 
     <!-- Error messages -->
     <string name="error_connect">An error occurred while connecting to VLC</string>
+    <string name="error_vlc_settings_title">VLC Settings</string>
+    <string name="error_vlc_settings_message">The following information needs to be set:</string>
+    <string name="error_vlc_settings_ipaddress">\n- IP Address</string>
+    <string name="error_vlc_settings_port">\n- Port</string>
+
 
     <!-- MainActivity -->
     <string name="desc_previous_rewind">previous / rewind</string>

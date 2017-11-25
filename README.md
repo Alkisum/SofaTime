@@ -16,7 +16,7 @@ Sofa Time is an Android app that enables the user to control VLC media player re
 
 ## Usage
 
-+ Set the IP address, the port and the password to access VLC
++ Set the IP address, the port and the password to access VLC. More information: [VLC HTTP interface documentation](https://wiki.videolan.org/documentation:modules/http_intf/)
 + Use VLC's basic controls remotely
 
 
