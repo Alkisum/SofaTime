@@ -1,6 +1,6 @@
-# VLC Remote
+# Sofa Time
 
-VLC Remote is an Android app that enables the user to control VLC media player remotely.
+Sofa Time is an Android app that enables the user to control VLC media player remotely.
 
 
 ## Requirements
@@ -10,7 +10,7 @@ VLC Remote is an Android app that enables the user to control VLC media player r
 
 ## Installation
 
-+ Download the vlcremote-x.x.apk file under the *release* directory to your smartphone
++ Download the sofatime-x.x.apk file under the *release* directory to your smartphone
 + Install the application by executing the file 
 
 

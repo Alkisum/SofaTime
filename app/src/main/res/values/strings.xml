@@ -1,18 +1,28 @@
 <resources>
-    <string name="app_name">VLC Remote</string>
+    <string name="app_name">Sofa Time</string>
 
+    <!-- Actions -->
     <string name="action_settings">Settings</string>
     <string name="action_show">Show</string>
 
+    <!-- Default values -->
     <string name="default_duration">00:00</string>
     <string name="default_title">Connection to VLC&#8230;</string>
 
+    <!-- Error messages -->
     <string name="error_connect">An error occurred while connecting to VLC</string>
 
-    <!-- Settings -->
+    <!-- MainActivity -->
+    <string name="desc_previous_rewind">previous / rewind</string>
+    <string name="desc_play_pause">play / pause</string>
+    <string name="desc_next_forward">next / forward</string>
+    <string name="desc_volume_down">volume down</string>
+    <string name="desc_volume_up">volume up</string>
+
+    <!-- SettingsActivity -->
     <string name="settings_title">Settings</string>
 
-    <!-- About -->
+    <!-- AboutActivity -->
     <string name="about_title">About</string>
-    <string name="about_github">https://github.com/Alkisum/VlcRemote/</string>
+    <string name="about_github">https://github.com/Alkisum/SofaTime/</string>
 </resources>

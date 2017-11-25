@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginBottom="@dimen/activity_vertical_margin"
@@ -10,97 +11,117 @@
     android:layout_marginStart="@dimen/activity_horizontal_margin"
     android:layout_marginTop="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="com.alkisum.android.vlcremote.activities.MainActivity"
-    tools:showIn="@layout/activity_main"
-    android:id="@+id/main_layout">
+    tools:context="com.alkisum.android.sofatime.activities.MainActivity"
+    tools:showIn="@layout/activity_main">
 
     <TextView
         android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/default_title"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
 
     <SeekBar
-        android:id="@+id/seekBar"
+        android:id="@+id/seekBar_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title"/>
+        app:layout_constraintTop_toTopOf="@+id/title"
+        app:layout_constraintVertical_bias="0.15"/>
 
     <TextView
         android:id="@+id/start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:text="@string/default_duration"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/seekBar"/>
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_time"/>
 
     <TextView
         android:id="@+id/end"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:text="@string/default_duration"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/seekBar"/>
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_time"/>
 
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="vertical"
+    <ImageButton
+        android:id="@+id/previous_rewind"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/action_button"
+        android:contentDescription="@string/desc_previous_rewind"
+        android:src="@drawable/ic_fast_rewind_white_36dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/play_pause"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/start">
+        app:layout_constraintTop_toTopOf="parent"/>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onPreviousClick"
-            android:text="previous"/>
+    <ImageButton
+        android:id="@+id/play_pause"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:background="@drawable/action_button"
+        android:contentDescription="@string/desc_play_pause"
+        android:src="@drawable/ic_play_arrow_white_48dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/next_forward"
+        app:layout_constraintStart_toEndOf="@+id/previous_rewind"
+        app:layout_constraintTop_toTopOf="parent"/>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onRewindClick"
-            android:text="rewind"/>
+    <ImageButton
+        android:id="@+id/next_forward"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/action_button"
+        android:contentDescription="@string/desc_next_forward"
+        android:src="@drawable/ic_fast_forward_white_36dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/play_pause"
+        app:layout_constraintTop_toTopOf="parent"/>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onPlayPauseClick"
-            android:text="play / pause"/>
+    <ImageButton
+        android:id="@+id/volume_down"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/action_button"
+        android:contentDescription="@string/desc_volume_down"
+        android:src="@drawable/ic_volume_down_white_24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/seekBar_volume"
+        app:layout_constraintStart_toStartOf="@+id/previous_rewind"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.85"/>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onForwardClick"
-            android:text="forward"/>
+    <SeekBar
+        android:id="@+id/seekBar_volume"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/volume_up"
+        app:layout_constraintStart_toEndOf="@+id/volume_down"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.83"/>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onNextClick"
-            android:text="next"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onVolumeUpClick"
-            android:text="volume up"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onVolumeDownClick"
-            android:text="volume down"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onFullscreenClick"
-            android:text="fullscreen"/>
-
-    </LinearLayout>
+    <ImageButton
+        android:id="@+id/volume_up"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/action_button"
+        android:contentDescription="@string/desc_volume_up"
+        android:src="@drawable/ic_volume_up_white_24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/next_forward"
+        app:layout_constraintStart_toEndOf="@+id/seekBar_volume"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.85"/>
 
 </android.support.constraint.ConstraintLayout>
