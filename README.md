@@ -20,16 +20,16 @@ Sofa Time is an Android app that enables the user to control VLC media player re
 + Use VLC's basic controls remotely
 
 
+## Screenshots
+
+![](/screenshots/sofatime_main.png)
+
+
 ## Used libraries
 
 + [EventBus](https://github.com/greenrobot/EventBus)
 + [Butter Knife](https://github.com/JakeWharton/butterknife)
 + [OkHttp](https://github.com/square/okhttp)
-
-
-## Screenshots
-
-![](/screenshots/sofatime_main.png)
 
 
 ## License
