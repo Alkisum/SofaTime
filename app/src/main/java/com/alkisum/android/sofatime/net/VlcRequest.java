@@ -1,6 +1,7 @@
 package com.alkisum.android.sofatime.net;
 
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.alkisum.android.sofatime.events.ErrorEvent;
@@ -33,7 +34,7 @@ import okhttp3.Route;
  * Class processing requests to VLC and handling responses.
  *
  * @author Alkisum
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class VlcRequest {
@@ -83,8 +84,7 @@ public class VlcRequest {
         builder.authenticator(new Authenticator() {
             @Override
             public Request authenticate(final Route route,
-                                        final Response response)
-                    throws IOException {
+                                        @NonNull final Response response) {
                 String credential = Credentials.basic("", password);
                 return response.request().newBuilder().header(
                         "Authorization", credential).build();
@@ -143,14 +143,16 @@ public class VlcRequest {
 
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(final Call call, final IOException e) {
+            public void onFailure(@NonNull final Call call,
+                                  @NonNull final IOException e) {
                 Log.e(TAG, e.getMessage(), e);
                 EventBus.getDefault().post(new ErrorEvent(
                         "Request failed", e.getMessage()));
             }
 
             @Override
-            public void onResponse(final Call call, final Response response) {
+            public void onResponse(@NonNull final Call call,
+                                   @NonNull final Response response) {
                 if (response.isSuccessful()) {
                     statusRefreshDelay = 1000;
                     if (!ignoreResponse) {
