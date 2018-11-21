@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
+        android:name=".app.SofaTimeApp"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_descriptor"
         android:icon="@mipmap/ic_launcher"
@@ -15,6 +16,7 @@
         <activity
             android:name="com.alkisum.android.sofatime.activities.MainActivity"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -33,6 +35,8 @@
             android:label="@string/about_title"
             android:parentActivityName="com.alkisum.android.sofatime.activities.SettingsActivity">
         </activity>
+
+        <service android:name=".net.VlcRequestService"/>
     </application>
 
 </manifest>

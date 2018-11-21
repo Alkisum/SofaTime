@@ -1,13 +1,27 @@
 package com.alkisum.android.sofatime.net;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.annotation.NonNull;
+import android.support.v4.app.NotificationCompat;
+import android.text.format.DateUtils;
 import android.util.Log;
 
+import com.alkisum.android.sofatime.R;
+import com.alkisum.android.sofatime.activities.MainActivity;
 import com.alkisum.android.sofatime.events.ErrorEvent;
 import com.alkisum.android.sofatime.events.RequestEvent;
 import com.alkisum.android.sofatime.events.StatusEvent;
 import com.alkisum.android.sofatime.utils.Http;
+import com.alkisum.android.sofatime.utils.Pref;
 import com.alkisum.android.sofatime.utils.Xml;
 
 import org.greenrobot.eventbus.EventBus;
@@ -37,17 +51,27 @@ import okhttp3.Route;
  * @version 1.1
  * @since 1.0
  */
-public class VlcRequest {
+public class VlcRequestService extends Service {
 
     /**
      * Log tag.
      */
-    private static final String TAG = "VlcRequest";
+    private static final String TAG = "VlcRequestService";
+
+    /**
+     * The identifier for the notification displayed for the foreground service.
+     */
+    private static final int NOTIFICATION_ID = 241;
+
+    /**
+     * Binder.
+     */
+    private final IBinder binder = new LocalBinder();
 
     /**
      * OkHttpClient instance.
      */
-    private final OkHttpClient client;
+    private OkHttpClient client;
 
     /**
      * Delay to send a request to get a new status from VLC.
@@ -67,19 +91,48 @@ public class VlcRequest {
     /**
      * Base URL to use when sending requests.
      */
-    private final String baseUrl;
+    private String baseUrl;
 
     /**
-     * VlcRequest constructor.
-     *
-     * @param ipAddress IP address
-     * @param port      Port
-     * @param password  Password
+     * Notification builder.
      */
-    public VlcRequest(final String ipAddress, final String port,
-                      final String password) {
+    private NotificationCompat.Builder notificationBuilder;
+
+    /**
+     * Notification manager.
+     */
+    private NotificationManager notificationManager;
+
+    /**
+     * Flag set to true if the VLC request service is running in foreground,
+     * false otherwise.
+     */
+    private boolean runningInForeground = false;
+
+    @Override
+    public final void onCreate() {
+        initNotification();
+        EventBus.getDefault().register(this);
+        statusHandler.post(statusTask);
+    }
+
+    @Override
+    public final int onStartCommand(final Intent intent, final int flags,
+                                    final int startId) {
+        return START_NOT_STICKY;
+    }
+
+    @Override
+    public final IBinder onBind(final Intent intent) {
+        // get extras from intent
+        String ipAddress = intent.getStringExtra(Pref.VLC_IP_ADDRESS);
+        String port = intent.getStringExtra(Pref.VLC_PORT);
+        final String password = intent.getStringExtra(Pref.VLC_PASSWORD);
+
+        // build base URL
         baseUrl = "http://" + ipAddress + ":" + port + "/requests/status.xml";
 
+        // build client
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         builder.authenticator(new Authenticator() {
             @Override
@@ -91,20 +144,16 @@ public class VlcRequest {
             }
         });
         client = builder.build();
+        return binder;
     }
 
-    /**
-     * Register to receive event and start status task.
-     */
-    public final void start() {
-        EventBus.getDefault().register(this);
-        statusHandler.post(statusTask);
+    @Override
+    public final boolean onUnbind(final Intent intent) {
+        return false;
     }
 
-    /**
-     * Stop status task and unregister to event.
-     */
-    public final void stop() {
+    @Override
+    public final void onDestroy() {
         if (statusTaskOn) {
             statusHandler.removeCallbacks(statusTask);
             statusTaskOn = false;
@@ -207,27 +256,27 @@ public class VlcRequest {
      * @throws IOException                  XML document cannot be created
      *                                      from XML string
      */
-    private static void handleStatus(final String xml) throws
+    private void handleStatus(final String xml) throws
             ParserConfigurationException, SAXException, IOException,
             XPathExpressionException {
         Document doc = Xml.buildDocFromString(xml);
 
-        // State
+        // state
         String state = Xml.getValueFromStatus(doc, "state", null);
 
-        // File name
+        // file name
         String title = Xml.getValueFromStatus(doc, "info", "filename");
 
-        // Time
+        // time
         String time = Xml.getValueFromStatus(doc, "time", null);
 
-        // Length
+        // length
         String length = Xml.getValueFromStatus(doc, "length", null);
 
-        // Volume
+        // volume
         String volume = Xml.getValueFromStatus(doc, "volume", null);
 
-        // Post status
+        // post status
         EventBus.getDefault().post(new StatusEvent(state, title,
                 Integer.parseInt(time), Integer.parseInt(length),
                 Float.parseFloat(volume)));
@@ -241,6 +290,26 @@ public class VlcRequest {
     }
 
     /**
+     * Triggered when response status is received from VLC.
+     * @param statusEvent Status event
+     */
+    @Subscribe
+    public final void onStatusEvent(final StatusEvent statusEvent) {
+        // update notification
+        notificationBuilder.setContentTitle(statusEvent.getTitle());
+        notificationBuilder.setContentText(
+                DateUtils.formatElapsedTime(statusEvent.getTime()) + " / "
+                        + DateUtils.formatElapsedTime(statusEvent.getLength()));
+        notificationBuilder.setWhen(System.currentTimeMillis());
+
+        if (runningInForeground) {
+            // notify
+            notificationManager.notify(NOTIFICATION_ID,
+                    notificationBuilder.build());
+        }
+    }
+
+    /**
      * Triggered on Request event.
      *
      * @param request Request event
@@ -248,5 +317,64 @@ public class VlcRequest {
     @Subscribe
     public final void onRequestEvent(final RequestEvent request) {
         run(request.getCommand(), request.getVal(), request.isIgnoreResponse());
+    }
+
+    /**
+     * Initialize notification.
+     */
+    private void initNotification() {
+        PendingIntent activityPendingIntent = PendingIntent.getActivity(
+                this, 0, new Intent(this, MainActivity.class),
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        notificationManager = (NotificationManager)
+                getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel(
+                    "SofaTime", "SofaTime controller",
+                    NotificationManager.IMPORTANCE_LOW);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }
+
+        notificationBuilder = new NotificationCompat.Builder(this, "SofaTime");
+        notificationBuilder.setContentIntent(activityPendingIntent);
+        notificationBuilder.setSmallIcon(R.drawable.ic_theaters_white_24dp);
+    }
+
+    /**
+     * @return true if the VLC request service is running in foreground,
+     * false otherwise
+     */
+    public boolean isRunningInForeground() {
+        return runningInForeground;
+    }
+
+    /**
+     * Make the service run in the foreground.
+     */
+    public final void startForeground() {
+        startForeground(NOTIFICATION_ID, notificationBuilder.build());
+        runningInForeground = true;
+    }
+
+    /**
+     * Remove the service from foreground state.
+     */
+    public final void stopForeground() {
+        stopForeground(true);
+        runningInForeground = false;
+    }
+
+    /**
+     * Class used for the client Binder.
+     */
+    public final class LocalBinder extends Binder {
+
+        /**
+         * @return VlcRequestService
+         */
+        public VlcRequestService getService() {
+            return VlcRequestService.this;
+        }
     }
 }

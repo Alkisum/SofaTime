@@ -1,8 +1,12 @@
 package com.alkisum.android.sofatime.activities;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.constraint.ConstraintLayout;
 import android.support.design.widget.Snackbar;
@@ -22,7 +26,7 @@ import com.alkisum.android.sofatime.dialogs.ErrorDialog;
 import com.alkisum.android.sofatime.events.ErrorEvent;
 import com.alkisum.android.sofatime.events.RequestEvent;
 import com.alkisum.android.sofatime.events.StatusEvent;
-import com.alkisum.android.sofatime.net.VlcRequest;
+import com.alkisum.android.sofatime.net.VlcRequestService;
 import com.alkisum.android.sofatime.utils.Cmd;
 import com.alkisum.android.sofatime.utils.Pref;
 import com.alkisum.android.sofatime.utils.State;
@@ -47,11 +51,6 @@ import butterknife.OnLongClick;
 public class MainActivity extends AppCompatActivity {
 
     /**
-     * VlcRequest instance.
-     */
-    private VlcRequest vlcRequest;
-
-    /**
      * Last state read from status.
      */
     private String lastState = null;
@@ -62,6 +61,11 @@ public class MainActivity extends AppCompatActivity {
      * be updated due to a response sent before the request.
      */
     private boolean skipNextStatus = false;
+
+    /**
+     * Reference to VLC request service.
+     */
+    private VlcRequestService vlcRequestService = null;
 
     /**
      * Main layout.
@@ -103,62 +107,58 @@ public class MainActivity extends AppCompatActivity {
     protected final void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // set view
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
+        // toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // Time SeekBar listener
-        timeSeekBar.setOnSeekBarChangeListener(onTimeSeekBarChangeListener);
+        // configure seek bars
+        this.configureSeekBars();
 
-        // VLC volume controller is based on 256
-        volumeSeekBar.setMax(256);
+        // register activity to EventBus
+        EventBus.getDefault().register(this);
 
-        // Volume SeekBar listener
-        volumeSeekBar.setOnSeekBarChangeListener(onVolumeSeekBarChangeListener);
+        // start VLC request service
+        this.startVlcRequestService();
     }
 
     @Override
     protected final void onStart() {
         super.onStart();
 
-        EventBus.getDefault().register(this);
-
-        SharedPreferences sharedPref = PreferenceManager
-                .getDefaultSharedPreferences(this);
-
-        String ipAddress = sharedPref.getString(Pref.VLC_IP_ADDRESS, "");
-        String port = sharedPref.getString(Pref.VLC_PORT, "");
-        String password = sharedPref.getString(Pref.VLC_PASSWORD, "");
-
-        if (ipAddress.equals("") || port.equals("")) {
-            StringBuilder msg = new StringBuilder();
-            msg.append(getString(R.string.error_vlc_settings_message));
-            if (ipAddress.equals("")) {
-                msg.append(getString(R.string.error_vlc_settings_ipaddress));
-            }
-            if (port.equals("")) {
-                msg.append(getString(R.string.error_vlc_settings_port));
-            }
-            ErrorDialog.show(this, getString(R.string.error_vlc_settings_title),
-                    msg.toString());
-        } else {
-            // start HTTP request
-            vlcRequest = new VlcRequest(ipAddress, port, password);
-            vlcRequest.start();
+        if (vlcRequestService != null
+                && vlcRequestService.isRunningInForeground()) {
+            // dismiss notification for VLC request service
+            vlcRequestService.stopForeground();
         }
+
     }
 
     @Override
     protected final void onStop() {
         super.onStop();
 
-        if (vlcRequest != null) {
-            vlcRequest.stop();
+        if (vlcRequestService != null && !isFinishing()) {
+            // show notification for VLC request service
+            vlcRequestService.startForeground();
         }
+    }
 
+    @Override
+    protected final void onDestroy() {
+        super.onDestroy();
+
+        // unregister activity to EventBus
         EventBus.getDefault().unregister(this);
+
+        // unbind VLC request service
+        if (vlcRequestService != null) {
+            vlcRequestService.stopSelf();
+            unbindService(serviceConnection);
+        }
     }
 
     @Override
@@ -178,15 +178,73 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Configure seek bars.
+     */
+    private void configureSeekBars() {
+        // Time SeekBar listener
+        timeSeekBar.setOnSeekBarChangeListener(onTimeSeekBarChangeListener);
+
+        // VLC volume controller is based on 256
+        volumeSeekBar.setMax(256);
+
+        // Volume SeekBar listener
+        volumeSeekBar.setOnSeekBarChangeListener(onVolumeSeekBarChangeListener);
+    }
+
+    /**
+     * Check VLC settings and start the VLC request service.
+     */
+    private void startVlcRequestService() {
+        // get VLC preferences
+        SharedPreferences sharedPref = PreferenceManager
+                .getDefaultSharedPreferences(this);
+        String ipAddress = sharedPref.getString(Pref.VLC_IP_ADDRESS, "");
+        String port = sharedPref.getString(Pref.VLC_PORT, "");
+        String password = sharedPref.getString(Pref.VLC_PASSWORD, "");
+
+        if (ipAddress.equals("") || port.equals("")) {
+            // show error message if VLC preferences not set
+            this.showVlcSettingError(ipAddress, port);
+        } else {
+            // start VLC request service
+            Intent intent = new Intent(this, VlcRequestService.class);
+            intent.putExtra(Pref.VLC_IP_ADDRESS, ipAddress);
+            intent.putExtra(Pref.VLC_PORT, port);
+            intent.putExtra(Pref.VLC_PASSWORD, password);
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+    /**
+     * Show list of VLC preferences not set.
+     *
+     * @param ipAddress IP address from preferences
+     * @param port      Port from preferences
+     */
+    private void showVlcSettingError(final String ipAddress,
+                                     final String port) {
+        StringBuilder msg = new StringBuilder();
+        msg.append(getString(R.string.error_vlc_settings_message));
+        if (ipAddress.equals("")) {
+            msg.append(getString(R.string.error_vlc_settings_ipaddress));
+        }
+        if (port.equals("")) {
+            msg.append(getString(R.string.error_vlc_settings_port));
+        }
+        ErrorDialog.show(this, getString(R.string.error_vlc_settings_title),
+                msg.toString());
+    }
+
+    /**
      * Triggered on Error events.
      *
      * @param error Error event
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public final void onErrorEvent(final ErrorEvent error) {
-        if (vlcRequest != null) {
+        if (vlcRequestService != null) {
             // Increase delay between each request to get the status
-            vlcRequest.setStatusRefreshDelay(5000);
+            vlcRequestService.setStatusRefreshDelay(5000);
         }
         applyDefaultStatus();
         Snackbar.make(mainLayout, R.string.error_connect,
@@ -422,4 +480,24 @@ public class MainActivity extends AppCompatActivity {
         EventBus.getDefault().post(new RequestEvent(Cmd.VOLUME,
                 Val.volume("-")));
     }
+
+    /**
+     * Monitor the state of the connection to the service.
+     */
+    private final ServiceConnection serviceConnection =
+            new ServiceConnection() {
+
+                @Override
+                public void onServiceConnected(final ComponentName name,
+                                               final IBinder iBinder) {
+                    VlcRequestService.LocalBinder binder =
+                            (VlcRequestService.LocalBinder) iBinder;
+                    MainActivity.this.vlcRequestService = binder.getService();
+                }
+
+                @Override
+                public void onServiceDisconnected(final ComponentName name) {
+                    vlcRequestService = null;
+                }
+            };
 }
