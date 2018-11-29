@@ -23,6 +23,10 @@
     <string name="desc_next_forward">next / forward</string>
     <string name="desc_volume_down">volume down</string>
     <string name="desc_volume_up">volume up</string>
+    <string name="desc_rewind">rewind</string>
+    <string name="desc_play">play</string>
+    <string name="desc_pause">pause</string>
+    <string name="desc_forward">forward</string>
 
     <!-- SettingsActivity -->
     <string name="settings_title">Settings</string>

@@ -14,14 +14,19 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.text.format.DateUtils;
 import android.util.Log;
+import android.view.View;
+import android.widget.RemoteViews;
 
 import com.alkisum.android.sofatime.R;
 import com.alkisum.android.sofatime.activities.MainActivity;
 import com.alkisum.android.sofatime.events.ErrorEvent;
 import com.alkisum.android.sofatime.events.RequestEvent;
 import com.alkisum.android.sofatime.events.StatusEvent;
+import com.alkisum.android.sofatime.utils.Cmd;
 import com.alkisum.android.sofatime.utils.Http;
 import com.alkisum.android.sofatime.utils.Pref;
+import com.alkisum.android.sofatime.utils.State;
+import com.alkisum.android.sofatime.utils.Val;
 import com.alkisum.android.sofatime.utils.Xml;
 
 import org.greenrobot.eventbus.EventBus;
@@ -45,7 +50,7 @@ import okhttp3.ResponseBody;
 import okhttp3.Route;
 
 /**
- * Class processing requests to VLC and handling responses.
+ * Service processing requests to VLC and handling responses.
  *
  * @author Alkisum
  * @version 1.1
@@ -62,6 +67,26 @@ public class VlcRequestService extends Service {
      * The identifier for the notification displayed for the foreground service.
      */
     private static final int NOTIFICATION_ID = 241;
+
+    /**
+     * Intent action rewind.
+     */
+    private static final String REWIND = "rewind";
+
+    /**
+     * Intent action play.
+     */
+    private static final String PLAY = "play";
+
+    /**
+     * Intent action pause.
+     */
+    private static final String PAUSE = "pause";
+
+    /**
+     * Intent action forward.
+     */
+    private static final String FORWARD = "forward";
 
     /**
      * Binder.
@@ -109,8 +134,19 @@ public class VlcRequestService extends Service {
      */
     private boolean runningInForeground = false;
 
+    /**
+     * Notification layout.
+     */
+    private RemoteViews notifLayout;
+
+    /**
+     * Notification layout expanded.
+     */
+    private RemoteViews notifLayoutExpanded;
+
     @Override
     public final void onCreate() {
+
         initNotification();
         EventBus.getDefault().register(this);
         statusHandler.post(statusTask);
@@ -119,6 +155,28 @@ public class VlcRequestService extends Service {
     @Override
     public final int onStartCommand(final Intent intent, final int flags,
                                     final int startId) {
+        if (intent == null || intent.getAction() == null) {
+            return START_NOT_STICKY;
+        }
+
+        switch (intent.getAction()) {
+            case REWIND:
+                EventBus.getDefault().post(
+                        new RequestEvent(Cmd.SEEK, Val.REWIND));
+                break;
+            case PLAY:
+                EventBus.getDefault().post(new RequestEvent(Cmd.PLAY));
+                break;
+            case PAUSE:
+                EventBus.getDefault().post(new RequestEvent(Cmd.PAUSE));
+                break;
+            case FORWARD:
+                EventBus.getDefault().post(
+                        new RequestEvent(Cmd.SEEK, Val.FORWARD));
+                break;
+            default:
+                break;
+        }
         return START_NOT_STICKY;
     }
 
@@ -291,22 +349,74 @@ public class VlcRequestService extends Service {
 
     /**
      * Triggered when response status is received from VLC.
+     *
      * @param statusEvent Status event
      */
     @Subscribe
     public final void onStatusEvent(final StatusEvent statusEvent) {
-        // update notification
-        notificationBuilder.setContentTitle(statusEvent.getTitle());
-        notificationBuilder.setContentText(
-                DateUtils.formatElapsedTime(statusEvent.getTime()) + " / "
-                        + DateUtils.formatElapsedTime(statusEvent.getLength()));
+        // get values from status event
+        String title = statusEvent.getTitle();
+        String content = DateUtils.formatElapsedTime(statusEvent.getTime())
+                + " / "
+                + DateUtils.formatElapsedTime(statusEvent.getLength());
+
+        // update text views
+        this.updateTitle(title);
+        this.updateContent(content);
         notificationBuilder.setWhen(System.currentTimeMillis());
+
+        // update buttons visibility
+        switch (statusEvent.getState()) {
+            case State.PLAYING:
+                this.updateVisibility(R.id.notification_play, View.GONE);
+                this.updateVisibility(R.id.notification_pause, View.VISIBLE);
+                break;
+            case State.PAUSED:
+            case State.STOPPED:
+                this.updateVisibility(R.id.notification_pause, View.GONE);
+                this.updateVisibility(R.id.notification_play, View.VISIBLE);
+                break;
+            default:
+                break;
+        }
 
         if (runningInForeground) {
             // notify
             notificationManager.notify(NOTIFICATION_ID,
                     notificationBuilder.build());
         }
+    }
+
+    /**
+     * Update notification layouts with the given title.
+     *
+     * @param title New title
+     */
+    private void updateTitle(final String title) {
+        notifLayout.setTextViewText(R.id.notification_title, title);
+        notifLayoutExpanded.setTextViewText(R.id.notification_title, title);
+    }
+
+    /**
+     * Update notification layouts with the given content.
+     *
+     * @param content New content
+     */
+    private void updateContent(final String content) {
+        notifLayout.setTextViewText(R.id.notification_content, content);
+        notifLayoutExpanded.setTextViewText(R.id.notification_content, content);
+    }
+
+    /**
+     * Update notification layouts button identified by the given id
+     * with the given visibility.
+     *
+     * @param viewId     View id of the button to set the new visibility
+     * @param visibility New visibility to set
+     */
+    private void updateVisibility(final int viewId, final int visibility) {
+        notifLayout.setViewVisibility(viewId, visibility);
+        notifLayoutExpanded.setViewVisibility(viewId, visibility);
     }
 
     /**
@@ -323,10 +433,12 @@ public class VlcRequestService extends Service {
      * Initialize notification.
      */
     private void initNotification() {
+        // build content intent
         PendingIntent activityPendingIntent = PendingIntent.getActivity(
                 this, 0, new Intent(this, MainActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
+        // build notification manager
         notificationManager = (NotificationManager)
                 getSystemService(Context.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -336,9 +448,39 @@ public class VlcRequestService extends Service {
             notificationManager.createNotificationChannel(notificationChannel);
         }
 
-        notificationBuilder = new NotificationCompat.Builder(this, "SofaTime");
-        notificationBuilder.setContentIntent(activityPendingIntent);
-        notificationBuilder.setSmallIcon(R.drawable.ic_theaters_white_24dp);
+        // get custom layouts
+        notifLayout = new RemoteViews(
+                getPackageName(), R.layout.notification_small);
+        notifLayoutExpanded = new RemoteViews(
+                getPackageName(), R.layout.notification_large);
+
+        // build listeners for buttons
+        buildActionListeners(REWIND, R.id.notification_rewind);
+        buildActionListeners(PLAY, R.id.notification_play);
+        buildActionListeners(PAUSE, R.id.notification_pause);
+        buildActionListeners(FORWARD, R.id.notification_forward);
+
+        // build notification
+        notificationBuilder = new NotificationCompat.Builder(this, "SofaTime")
+                .setContentIntent(activityPendingIntent)
+                .setSmallIcon(R.drawable.ic_theaters_white_24dp)
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(notifLayout)
+                .setCustomBigContentView(notifLayoutExpanded);
+    }
+
+    /**
+     * Build the action listeners for the given view in notification layouts.
+     *
+     * @param action Intent action
+     * @param viewId View id
+     */
+    private void buildActionListeners(final String action, final int viewId) {
+        Intent i = new Intent(this, VlcRequestService.class);
+        i.setAction(action);
+        PendingIntent p = PendingIntent.getService(this, 0, i, 0);
+        notifLayout.setOnClickPendingIntent(viewId, p);
+        notifLayoutExpanded.setOnClickPendingIntent(viewId, p);
     }
 
     /**
