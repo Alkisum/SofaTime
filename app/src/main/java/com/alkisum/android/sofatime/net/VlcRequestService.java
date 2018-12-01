@@ -31,6 +31,7 @@ import com.alkisum.android.sofatime.utils.Xml;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -388,6 +389,27 @@ public class VlcRequestService extends Service {
     }
 
     /**
+     * Triggered on Error events.
+     *
+     * @param error Error event
+     */
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public final void onErrorEvent(final ErrorEvent error) {
+        // increase delay between each request to get the status
+        this.setStatusRefreshDelay(5000);
+
+        // reset notification views
+        this.resetViews();
+
+        if (runningInForeground) {
+            // notify
+            notificationManager.notify(NOTIFICATION_ID,
+                    notificationBuilder.build());
+        }
+    }
+
+
+    /**
      * Update notification layouts with the given title.
      *
      * @param title New title
@@ -417,6 +439,17 @@ public class VlcRequestService extends Service {
     private void updateVisibility(final int viewId, final int visibility) {
         notifLayout.setViewVisibility(viewId, visibility);
         notifLayoutExpanded.setViewVisibility(viewId, visibility);
+    }
+
+    /**
+     * Reset notification views.
+     */
+    private void resetViews() {
+        this.updateTitle(getString(R.string.default_title));
+        this.updateContent(getString(R.string.default_duration)
+                + " / " + getString(R.string.default_duration));
+        this.updateVisibility(R.id.notification_pause, View.GONE);
+        this.updateVisibility(R.id.notification_play, View.VISIBLE);
     }
 
     /**

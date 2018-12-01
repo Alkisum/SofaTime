@@ -242,11 +242,7 @@ public class MainActivity extends AppCompatActivity {
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public final void onErrorEvent(final ErrorEvent error) {
-        if (vlcRequestService != null) {
-            // Increase delay between each request to get the status
-            vlcRequestService.setStatusRefreshDelay(5000);
-        }
-        applyDefaultStatus();
+        this.applyDefaultStatus();
         Snackbar.make(mainLayout, R.string.error_connect,
                 Snackbar.LENGTH_LONG)
                 .setAction(R.string.action_show, new View.OnClickListener() {
@@ -314,6 +310,9 @@ public class MainActivity extends AppCompatActivity {
      */
     private void applyDefaultStatus() {
         lastState = null;
+        ImageButton button = findViewById(R.id.play_pause);
+        button.setImageDrawable(ContextCompat.getDrawable(this,
+                R.drawable.ic_play_arrow_white_48dp));
         titleTextView.setText(R.string.default_title);
         timeSeekBar.setProgress(0);
         startTextView.setText(R.string.default_duration);
