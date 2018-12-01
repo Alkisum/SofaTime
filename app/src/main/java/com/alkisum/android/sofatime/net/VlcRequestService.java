@@ -342,13 +342,6 @@ public class VlcRequestService extends Service {
     }
 
     /**
-     * @param statusRefreshDelay Status refresh delay to set
-     */
-    public final void setStatusRefreshDelay(final long statusRefreshDelay) {
-        this.statusRefreshDelay = statusRefreshDelay;
-    }
-
-    /**
      * Triggered when response status is received from VLC.
      *
      * @param statusEvent Status event
@@ -396,7 +389,7 @@ public class VlcRequestService extends Service {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public final void onErrorEvent(final ErrorEvent error) {
         // increase delay between each request to get the status
-        this.setStatusRefreshDelay(5000);
+        this.statusRefreshDelay  = 5000;
 
         // reset notification views
         this.resetViews();
