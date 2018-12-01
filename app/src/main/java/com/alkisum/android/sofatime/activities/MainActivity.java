@@ -45,7 +45,7 @@ import butterknife.OnLongClick;
  * Main activity showing controls for VLC.
  *
  * @author Alkisum
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 public class MainActivity extends AppCompatActivity {
