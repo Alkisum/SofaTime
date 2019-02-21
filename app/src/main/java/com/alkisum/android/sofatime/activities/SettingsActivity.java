@@ -7,18 +7,18 @@ import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
 
 import com.alkisum.android.sofatime.R;
 import com.alkisum.android.sofatime.utils.Pref;
 
+import androidx.appcompat.app.AppCompatActivity;
 import butterknife.ButterKnife;
 
 /**
  * Activity showing the application settings.
  *
  * @author Alkisum
- * @version 1.0
+ * @version 1.3
  * @since 1.0
  */
 public class SettingsActivity extends AppCompatActivity {
@@ -69,14 +69,10 @@ public class SettingsActivity extends AppCompatActivity {
             // About
             Preference aboutPref = findPreference(Pref.ABOUT);
             aboutPref.setOnPreferenceClickListener(
-                    new Preference.OnPreferenceClickListener() {
-                        @Override
-                        public boolean onPreferenceClick(
-                                final Preference preference) {
-                            startActivity(new Intent(getActivity(),
-                                    AboutActivity.class));
-                            return false;
-                        }
+                    preference -> {
+                        startActivity(new Intent(getActivity(),
+                                AboutActivity.class));
+                        return false;
                     });
         }
 

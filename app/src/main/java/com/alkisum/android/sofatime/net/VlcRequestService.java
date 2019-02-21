@@ -10,8 +10,6 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.annotation.NonNull;
-import android.support.v4.app.NotificationCompat;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
@@ -40,7 +38,8 @@ import java.io.IOException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPathExpressionException;
 
-import okhttp3.Authenticator;
+import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Credentials;
@@ -48,13 +47,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.Route;
 
 /**
  * Service processing requests to VLC and handling responses.
  *
  * @author Alkisum
- * @version 1.1
+ * @version 1.3
  * @since 1.0
  */
 public class VlcRequestService extends Service {
@@ -193,14 +191,10 @@ public class VlcRequestService extends Service {
 
         // build client
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
-        builder.authenticator(new Authenticator() {
-            @Override
-            public Request authenticate(final Route route,
-                                        @NonNull final Response response) {
-                String credential = Credentials.basic("", password);
-                return response.request().newBuilder().header(
-                        "Authorization", credential).build();
-            }
+        builder.authenticator((route, response) -> {
+            String credential = Credentials.basic("", password);
+            return response.request().newBuilder().header(
+                    "Authorization", credential).build();
         });
         client = builder.build();
         return binder;
@@ -389,7 +383,7 @@ public class VlcRequestService extends Service {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public final void onErrorEvent(final ErrorEvent error) {
         // increase delay between each request to get the status
-        this.statusRefreshDelay  = 5000;
+        this.statusRefreshDelay = 5000;
 
         // reset notification views
         this.resetViews();

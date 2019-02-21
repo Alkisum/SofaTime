@@ -8,11 +8,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.support.constraint.ConstraintLayout;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.text.format.DateUtils;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,11 +26,16 @@ import com.alkisum.android.sofatime.utils.Cmd;
 import com.alkisum.android.sofatime.utils.Pref;
 import com.alkisum.android.sofatime.utils.State;
 import com.alkisum.android.sofatime.utils.Val;
+import com.google.android.material.snackbar.Snackbar;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -45,7 +45,7 @@ import butterknife.OnLongClick;
  * Main activity showing controls for VLC.
  *
  * @author Alkisum
- * @version 1.1
+ * @version 1.3
  * @since 1.0
  */
 public class MainActivity extends AppCompatActivity {
@@ -202,7 +202,8 @@ public class MainActivity extends AppCompatActivity {
         String port = sharedPref.getString(Pref.VLC_PORT, "");
         String password = sharedPref.getString(Pref.VLC_PASSWORD, "");
 
-        if (ipAddress.equals("") || port.equals("")) {
+        if (ipAddress == null || "".equals(ipAddress)
+                || port == null || "".equals(port)) {
             // show error message if VLC preferences not set
             this.showVlcSettingError(ipAddress, port);
         } else {
@@ -225,10 +226,10 @@ public class MainActivity extends AppCompatActivity {
                                      final String port) {
         StringBuilder msg = new StringBuilder();
         msg.append(getString(R.string.error_vlc_settings_message));
-        if (ipAddress.equals("")) {
+        if (ipAddress == null || "".equals(ipAddress)) {
             msg.append(getString(R.string.error_vlc_settings_ipaddress));
         }
-        if (port.equals("")) {
+        if (port == null || "".equals(port)) {
             msg.append(getString(R.string.error_vlc_settings_port));
         }
         ErrorDialog.show(this, getString(R.string.error_vlc_settings_title),
@@ -245,13 +246,9 @@ public class MainActivity extends AppCompatActivity {
         this.applyDefaultStatus();
         Snackbar.make(mainLayout, R.string.error_connect,
                 Snackbar.LENGTH_LONG)
-                .setAction(R.string.action_show, new View.OnClickListener() {
-                    @Override
-                    public void onClick(final View v) {
-                        ErrorDialog.show(MainActivity.this,
-                                error.getTitle(), error.getMessage());
-                    }
-                }).show();
+                .setAction(R.string.action_show, v -> ErrorDialog.show(
+                        MainActivity.this, error.getTitle(), error.getMessage()
+                )).show();
     }
 
     /**
